@@ -1,8 +1,9 @@
 import os
 import pickle
+import csv
 # import httplib2
-# import google.oauth2.credentials
 
+# import google.oauth2.credentials
 from googleapiclient.discovery import build
 # from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -23,7 +24,7 @@ def get_authenticated_service():
         with open('token.pickle', 'rb') as token:
             credentials = pickle.load(token)
 
-    # Refresh the saved credentials if they expired
+    # Refresh the saved credentials if it's expired
     if credentials and credentials.expired and credentials.refresh_token:
         try:
             credentials.refresh(Request())
@@ -33,7 +34,8 @@ def get_authenticated_service():
 
     # Check if credentials don't exist
     if not credentials or not credentials.valid:
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE,
+                                                         SCOPES)
         credentials = flow.run_console()
 
     # Save the credentials for the next run
@@ -43,36 +45,21 @@ def get_authenticated_service():
     return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
 
-def get_videos(service, **kwargs):
+def get_videos(service, max_pages=3, **kwargs):
     results = service.search().list(**kwargs).execute()
     final_results = []
-    idx, max_pages = 0, 3
+    page_number = 1
 
-    while results and idx < max_pages:
+    while results and page_number <= max_pages:
         final_results.extend(results['items'])
         if 'nextPageToken' in results:
             kwargs['pageToken'] = results['nextPageToken']
             results = service.search().list(**kwargs).execute()
-            idx += 1
+            page_number += 1
         else:
             break
 
     return final_results
-
-
-def search_videos_by_keyword(service, **kwargs):
-    results = get_videos(service, **kwargs)
-    for item in results:
-        video_id = item['id']['videoId']
-        title = item['snippet']['title']
-
-        comments = get_video_comments(service,
-                                      part='snippet,replies',
-                                      videoId=video_id,
-                                      textFormat='plainText')
-
-        print('{} - {}'.format(title, video_id))
-        print([comment['textDisplay'] for comment in comments])
 
 
 def get_video_comments(service, **kwargs):
@@ -91,8 +78,39 @@ def get_video_comments(service, **kwargs):
             break
 
     # print(comments[0])
-    print(len(comments))
+    # print(len(comments))
     return comments
+
+
+def search_videos_by_keyword(service, **kwargs):
+    results = get_videos(service, **kwargs)
+    final_results = []
+
+    # print('video search results length: ', len(results))
+    for item in results:
+        video_id = item['id']['videoId']
+        title = item['snippet']['title']
+
+        comments = get_video_comments(service,
+                                      part='snippet,replies',
+                                      videoId=video_id,
+                                      textFormat='plainText')
+        comments = [comment['textDisplay'] for comment in comments]
+
+        final_results.extend([(video_id, title, cmnt) for cmnt in comments])
+
+    write_to_csv(final_results)
+
+
+def write_to_csv(comments):
+    with open('comments.csv', 'w') as comments_file:
+        comments_writer = csv.writer(comments_file,
+                                     delimiter=',',
+                                     quotechar='"',
+                                     quoting=csv.QUOTE_MINIMAL)
+        comments_writer.writerow(['VideoID', 'Title', 'Comment'])
+        for row in comments:
+            comments_writer.writerow(list(row))
 
 
 def main():
@@ -104,8 +122,6 @@ def main():
     keyword = input('Enter a keyword: ')
     search_videos_by_keyword(service, q=keyword, part='id,snippet',
                              eventType='completed', type='video')
-    # video_id = 'GZvSYJDk-us'
-    # comments = get_video_comments(service, part='snippet,replies', videoId=video_id)
 
 
 if __name__ == '__main__':
