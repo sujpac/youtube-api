@@ -12,19 +12,30 @@ def main():
     api_key = os.environ.get('YT_API_KEY')
     api_service_name = 'youtube'
     api_version = 'v3'
-    # print(api_key)
-    channel_id = 'UCTw-cD-yziryZbvajczbx9A'
 
-    # flow = InstalledAppFlow
+    # Personal YouTube data
+    channel_id = 'UCTw-cD-yziryZbvajczbx9A'
+    # example_playlist_id = 'PLX-v9aYT_Wb1LOXdFHpKQas-I0YGq9oZa'
+
     youtube = build(api_service_name, api_version, developerKey=api_key)
 
-    request = youtube.channels().list(
-        part='snippet,contentDetails,statistics',
-        id=channel_id,
-    )
-    response = request.execute()
+    # request = youtube.channels().list(
+    #     part='snippet,contentDetails,statistics',
+    #     id=channel_id,
+    # )
+    # response = request.execute()
+    #
+    # print(response)
 
-    print(response)
+    pl_request = youtube.playlists().list(
+        part='snippet, contentDetails',
+        channelId=channel_id,
+    )
+    pl_response = pl_request.execute()
+
+    for item in pl_response['items']:
+        print(item)
+        print()
 
 
 if __name__ == '__main__':

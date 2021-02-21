@@ -1,13 +1,16 @@
 import os
 import pickle
+# import httplib2
 # import google.oauth2.credentials
 
 from googleapiclient.discovery import build
 # from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+# from google.auth.transport.requests import requests
+from google.auth.exceptions import RefreshError
 
-CLIENT_SECRETS_FILE = 'client_secret.json'
+CLIENT_SECRETS_FILE = "client_secret.json"
 
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
 API_SERVICE_NAME = 'youtube'
@@ -20,29 +23,76 @@ def get_authenticated_service():
         with open('token.pickle', 'rb') as token:
             credentials = pickle.load(token)
 
-    #  Check if the credentials are invalid or do not exist
-    if not credentials or not credentials.valid:
-        # Check if the credentials have expired
-        if credentials and credentials.expired and credentials.refresh_token:
+    # Refresh the saved credentials if they expired
+    if credentials and credentials.expired and credentials.refresh_token:
+        try:
             credentials.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                        CLIENT_SECRETS_FILE,
-                        SCOPES,
-                    )
-            credentials = flow.run_console()
+        except RefreshError:
+            credentials = None
+            os.unlink('token.pickle')
 
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(credentials, token)
+    # Check if credentials don't exist
+    if not credentials or not credentials.valid:
+        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+        credentials = flow.run_console()
+
+    # Save the credentials for the next run
+    with open('token.pickle', 'wb') as token:
+        pickle.dump(credentials, token)
 
     return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
 
-def search_videos_by_keyword(service, **kwargs):
+def get_videos(service, **kwargs):
     results = service.search().list(**kwargs).execute()
-    for item in results['items']:
-        print('%s - %s' % (item['snippet']['title'], item['id']['videoId']))
+    final_results = []
+    idx, max_pages = 0, 3
+
+    while results and idx < max_pages:
+        final_results.extend(results['items'])
+        if 'nextPageToken' in results:
+            kwargs['pageToken'] = results['nextPageToken']
+            results = service.search().list(**kwargs).execute()
+            idx += 1
+        else:
+            break
+
+    return final_results
+
+
+def search_videos_by_keyword(service, **kwargs):
+    results = get_videos(service, **kwargs)
+    for item in results:
+        video_id = item['id']['videoId']
+        title = item['snippet']['title']
+
+        comments = get_video_comments(service,
+                                      part='snippet,replies',
+                                      videoId=video_id,
+                                      textFormat='plainText')
+
+        print('{} - {}'.format(title, video_id))
+        print([comment['textDisplay'] for comment in comments])
+
+
+def get_video_comments(service, **kwargs):
+    results = service.commentThreads().list(**kwargs).execute()
+    comments = []
+
+    while results:
+        for item in results['items']:
+            comment = item['snippet']['topLevelComment']['snippet']
+            comments.append(comment)
+
+        if 'nextPageToken' in results:
+            kwargs['pageToken'] = results['nextPageToken']
+            results = service.commentThreads().list(**kwargs).execute()
+        else:
+            break
+
+    # print(comments[0])
+    print(len(comments))
+    return comments
 
 
 def main():
@@ -54,6 +104,8 @@ def main():
     keyword = input('Enter a keyword: ')
     search_videos_by_keyword(service, q=keyword, part='id,snippet',
                              eventType='completed', type='video')
+    # video_id = 'GZvSYJDk-us'
+    # comments = get_video_comments(service, part='snippet,replies', videoId=video_id)
 
 
 if __name__ == '__main__':
