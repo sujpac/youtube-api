@@ -43,3 +43,6 @@ Number of videos: 16
 Total duration: 2hrs 11mins 59secs
 Average video duration: 8mins 14secs
 ```
+
+## License
+This project is under the MIT License. See the [LICENSE](https://github.com/sujpac/youtube-api/blob/main/LICENSE) file for the full license text.
