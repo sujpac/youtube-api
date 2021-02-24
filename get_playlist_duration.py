@@ -81,12 +81,18 @@ def main(playlist_id=None):
 
     print('Playlist title:', pl_title)
     print('Number of videos:', len(vid_ids))
-    print('Total duration:', hours, 'H', minutes, 'M', seconds % 60, 'S')
-    print('Average video duration:', avg_dur // 60, 'M', avg_dur % 60, 'S')
+    print('Total duration: ',
+          hours, 'hrs ',
+          minutes, 'mins ',
+          seconds % 60, 'secs ',
+          sep='')
+    print('Average video duration: ',
+          avg_dur // 60, 'mins ',
+          avg_dur % 60, 'secs ',
+          sep='')
 
 
 if __name__ == '__main__':
-    print('Enter a YouTube playlist ID: ', end='')
-    playlist_id = input().strip(' ')
+    playlist_id = input('Enter a YouTube playlist ID: ')
 
     main(playlist_id)
