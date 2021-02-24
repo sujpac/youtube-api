@@ -2,16 +2,23 @@
 
 ## Setup
 ```shell
-git clone https://github.com/sujpac/youtube-api.git
-cd youtube-api
-python3 -m venv env
-source env/bin/activate
+> git clone https://github.com/sujpac/youtube-api.git
+> cd youtube-api
+> virtualenv env
+> source env/bin/activate
 ```
-Go to the [Google Console](https://console.developers.google.com/projectselector2/apis/dashboard) and create a new project. Enable the YouTube Data API v3. Then, do the following:
-1. Create OAuth client ID credentials (for the `scrape_video_comments.py` script), choosing desktop for the application type.
-2. Download the client secrets file, rename it to `client_secret.json`, and move it to the top-level `youtube-api` project directory.
-3. Create API Key credentials (for the `get_playlist_duration.py` script).
-4. Securely store your API key through setting an environment variable. Add the line `export YT_API_KEY="replace-7FP-fake-ApI-key-f0r-exampl3"` to `.bashrc`, `.zshrc`, or whatever your shell configuration file is.
+Go to the [Google Console](https://console.developers.google.com/projectselector2/apis/dashboard) and create a new project. Go to the Library tab and enable the YouTube Data API v3 API. Then, go to the Credentials tab and do the following:
+1. Create OAuth client ID credentials (to be used by `scrape_video_comments.py`) and choose desktop as the application type.
+2. Download the client secrets file for the newly created OAuth credentials. Rename it to `client_secret.json`, and move to the `youtube-api` project directory.
+```shell
+> mv [downloads]/client_secret_10927*.apps.googleusercontent.com.json youtube-api/client_secret.json
+```
+3. Create API Key credentials (to be used by `get_playlist_duration.py`).
+4. Safely store your API key by setting an environment variable in your `.zshrc` (or whatever your shell configuration file is).
+```shell
+> echo 'export YT_API_KEY="[insert-your-API-key-here]"' >> ~/.zshrc
+> source ~/.zshrc
+```
 
 ## Dependencies
 ```shell
@@ -31,7 +38,8 @@ VideoID,Title,Comment
 sBVb4IB3O_U,"Let&#39;s Build a Fast, Modern Python API with FastAPI",Thank you for sharing
 sBVb4IB3O_U,"Let&#39;s Build a Fast, Modern Python API with FastAPI",23:06 Paul Everitt has the goofiest serious face I've ever seen
 sBVb4IB3O_U,"Let&#39;s Build a Fast, Modern Python API with FastAPI",20:05 that's a good idea
-[output continued in comments.csv]
+[...]
+[output truncated]
 ```
 
 ### Compute the total duration of a playlist
